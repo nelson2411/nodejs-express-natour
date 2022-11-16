@@ -9,8 +9,11 @@ const app = express();
 
 // 1) Middleware
 
+console.log(process.env.NODE_ENV);
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 // Morgan is a middleware that logs the request to the console
-app.use(morgan('dev'));
 // express.json() is a middleware that parses the body of the request and puts it into req.body
 app.use(express.json());
 
