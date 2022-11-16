@@ -14,6 +14,8 @@ app.use(morgan('dev'));
 // express.json() is a middleware that parses the body of the request and puts it into req.body
 app.use(express.json());
 
+app.use(express.static(`${__dirname}/public`)); // this is a middleware that serves static files
+
 /* a middleware function requires a third parameter called
 next which is a function that tells the middleware to move
 */
