@@ -24,6 +24,27 @@ exports.getAllTours = async (req, res) => {
       console.log(sortBy);
       query = query.sort(sortBy); // Here we sort the query by the sort parameter
     }
+
+    // 3) Field limiting
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+    }
+
+    // 4) Pagination
+    const page = req.query.page * 1 || 1; // Here we convert the page parameter to a number
+    const limit = req.query.limit * 1 || 100; // Here we convert the limit parameter to a number
+    const skip = (page - 1) * limit; // Here we calculate the number of documents to skip
+    query = query.skip(skip).limit(limit);
+
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      if (skip >= numTours) throw new Error('This page does not exist');
+    }
+
+    // Execute the query
     const tours = await query;
 
     res.status(200).json({
@@ -36,7 +57,7 @@ exports.getAllTours = async (req, res) => {
     });
   } catch (err) {
     res.status(404).json({
-      status: 'fail',
+      status: 'Something went wrong',
       message: err,
     });
   }
