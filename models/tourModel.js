@@ -99,6 +99,13 @@ tourSchema.post(/^find/, function (docs, next) {
   next();
 });
 
+// Aggregation Middleware
+tourSchema.pre('aggregate', function (next) {
+  // unshift() adds a new stage to the beginning of the pipeline
+  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+  next();
+});
+
 const Tour = mongoose.model('Tour', tourSchema);
 
 module.exports = Tour;
