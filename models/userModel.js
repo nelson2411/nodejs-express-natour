@@ -31,10 +31,11 @@ const userSchema = new mongoose.Schema({
     minlength: [8, 'A password must have more or equal than 8 characters'],
     //maxlength: [40, 'A password must have less or equal than 40 characters'],
     //validate: [validator.isStrongPassword, 'Please provide a strong password'],
-    //select: false,
+    select: false,
   },
   passwordConfirm: {
     type: String,
+    select: false,
     required: [true, 'Please confirm your password'],
     validate: {
       //  // This only works on CREATE and SAVE!!!
@@ -56,6 +57,14 @@ userSchema.pre('save', async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
+
+// instance method: available on all documents of a certain collection
+userSchema.methods.correctPassword = async function (
+  candidatePassword,
+  userPassword
+) {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 const User = mongoose.model('User', userSchema);
 
