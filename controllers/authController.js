@@ -54,3 +54,31 @@ exports.login = catchAsync(async (req, res, next) => {
     token,
   });
 });
+
+// Protect middleware
+
+exports.protect = catchAsync(async (req, res, next) => {
+  // 1) Getting token and check if it's there
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer') // We get the token from the header
+  ) {
+    token = req.headers.authorization.split(' ')[1]; // split the string into an array of strings
+  }
+  console.log(token);
+
+  if (!token) {
+    return next(
+      new AppError('You are not logged in! Please log in to get access!', 401)
+    );
+  }
+
+  // 2) Verification token
+
+  // 3) Check if user still exists
+
+  // 4) Check if user changed password after the token was issued
+
+  next();
+});
