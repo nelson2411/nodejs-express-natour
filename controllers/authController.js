@@ -1,9 +1,10 @@
+const { promisify } = require('util'); // built-in node module
 const jwt = require('jsonwebtoken');
-
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
+// eslint-disable-next-line arrow-body-style
 const signToken = (id) => {
   return jwt.sign({ id: id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -75,10 +76,24 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   // 2) Verification token
-
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET); // jwt.verify is a callback function, so we promisify it
+  console.log('decoded: ', decoded);
   // 3) Check if user still exists
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) {
+    return next(
+      new AppError('The user belonging to this token no longer exists!', 401)
+    );
+  }
 
   // 4) Check if user changed password after the token was issued
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
+    return next(
+      new AppError('User recently changed password! Please log in again!', 401)
+    );
+  }
 
+  // GRANT ACCESS TO PROTECTED ROUTE
+  req.user = currentUser; // pass the user to the next middleware
   next();
 });
