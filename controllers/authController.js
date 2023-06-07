@@ -1,3 +1,4 @@
+/* eslint-disable arrow-body-style */
 const { promisify } = require('util'); // built-in node module
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
@@ -17,6 +18,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
+    role: req.body.role, // only admin can set the role
   });
 
   const token = signToken(newUser._id);
@@ -97,3 +99,16 @@ exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser; // pass the user to the next middleware
   next();
 });
+
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    // roles is an array, e.g. ['admin', 'lead-guide']
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+
+    next(); // if the user is admin or lead-guide, then we call next()
+  };
+};
