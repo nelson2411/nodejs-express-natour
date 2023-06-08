@@ -1,4 +1,5 @@
 /* eslint-disable arrow-body-style */
+const crypto = require('crypto');
 const { promisify } = require('util'); // built-in node module
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
@@ -13,6 +14,18 @@ const signToken = (id) => {
   });
 };
 
+const createSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id); // create a token
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -22,15 +35,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     role: req.body.role, // only admin can set the role
   });
 
-  const token = signToken(newUser._id);
-
-  res.status(201).json({
-    status: 'success',
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  createSendToken(newUser, 201, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -52,11 +57,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   // 3) If everything ok, send token to client
   // Meanwhile, create a false token
-  const token = signToken(user._id);
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 // Protect middleware
@@ -161,4 +162,51 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   }
 });
 
-exports.resetPassword = catchAsync(async (req, res, next) => {});
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // 1. Get user based on the token
+  // encrypt the token in the URL
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() }, // check if the token has not expired
+  });
+  // 2. If token has not expired, and there is user, set the new password
+  if (!user) {
+    return next(new AppError('Token is invalid or has expired', 400));
+  }
+
+  user.password = req.body.password; // set the new password
+  user.passwordConfirm = req.body.passwordConfirm; // set the new passwordConfirm
+  user.passwordResetToken = undefined; // clear the passwordResetToken
+  user.passwordResetExpires = undefined; // clear the passwordResetExpires
+  await user.save(); // save the user
+
+  // 3. Update changedPasswordAt property for the user
+
+  // 4. Log the user in, send JWT
+  createSendToken(user, 200, res);
+});
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1. Get user from collection
+  const user = await User.findById(req.user.id).select('+password'); // req.user.id is from protect middleware
+
+  // 2. Check if POSTed current password is correct
+  if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
+    // if the current password is not correct
+    return next(new AppError('Your current password is wrong.', 401));
+  }
+
+  // 3. If so, update password
+  user.password = req.body.password; // set the new password
+  user.passwordConfirm = req.body.passwordConfirm; // set the new passwordConfirm
+  await user.save(); // save the user
+  // User.findByIdAndUpdate will not work as intended!
+
+  // 4. Log user in, send JWT
+  createSendToken(user, 200, res);
+});
