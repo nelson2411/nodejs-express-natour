@@ -54,6 +54,11 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  active: {
+    type: Boolean, // Boolean: true or false
+    default: true,
+    select: false, // hide this field from the output
+  },
 });
 
 userSchema.pre('save', async function (next) {
@@ -74,6 +79,12 @@ userSchema.pre('save', function (next) {
   // if the password is modified, then we set the passwordChangedAt property to the current time
   this.passwordChangedAt = Date.now() - 1000; // subtract 1 second to make sure the token is always created after the passwordChangedAt property
 
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  // this points to the current query
+  this.find({ active: { $ne: false } }); // find all the documents where the active property is not equal to false
   next();
 });
 

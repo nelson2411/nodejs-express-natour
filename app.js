@@ -1,5 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const AppError = require('./utils/appError');
@@ -7,15 +10,30 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
 
-// 1) Middleware
+// 1) global Middlewares
+
+app.use(helmet()); // set security HTTP headers
 
 console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+const limiter = rateLimit({
+  max: 100, // 100 requests from the same IP in one hour
+  windowMs: 60 * 60 * 1000, // 1 hour
+  message: 'Too many requests from this IP, please try again in an hour!',
+});
+
+app.use('/api', limiter); // apply the limiter middleware to all the routes that start with /api
+
 // Morgan is a middleware that logs the request to the console
 // express.json() is a middleware that parses the body of the request and puts it into req.body
-app.use(express.json());
+app.use(
+  express.json({
+    limit: '10kb', // limit the size of the body to 10kb
+  })
+);
 
 app.use(express.static(`${__dirname}/public`)); // this is a middleware that serves static files
 
@@ -54,6 +72,6 @@ app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-app.use(globalErrorHandler);
+app.use(globalErrorHandler); // global error handling middleware
 
 module.exports = app;
