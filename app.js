@@ -2,6 +2,9 @@ const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const mongoSanitze = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
@@ -34,6 +37,25 @@ app.use(
     limit: '10kb', // limit the size of the body to 10kb
   })
 );
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitze());
+
+// Data sanitization against XSS Cross Site Scripting attacks
+app.use(xss());
+
+app.use(
+  hpp({
+    whitelist: [
+      'duration',
+      'ratingsQuantity',
+      'ratingsAverage',
+      'maxGroupSize',
+      'difficulty',
+      'price',
+    ],
+  })
+); // Prevent parameter pollution
 
 app.use(express.static(`${__dirname}/public`)); // this is a middleware that serves static files
 
