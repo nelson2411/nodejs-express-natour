@@ -73,6 +73,18 @@ exports.login = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
+// Logout
+exports.logout = (req, res) => {
+  res.cookie('jwt', 'loggedout', {
+    // set the cookie to loggedout
+    expires: new Date(Date.now() + 10 * 1000), // expires in 10 seconds
+    httpOnly: true, // the cookie cannot be accessed or modified in any way by the browser
+  });
+  res.status(200).json({
+    status: 'success',
+  });
+};
+
 // Protect middleware
 
 exports.protect = catchAsync(async (req, res, next) => {
