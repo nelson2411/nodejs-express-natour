@@ -125,6 +125,14 @@ tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
 });
 
+// Virtual populate
+tourSchema.virtual('reviews', {
+  // name of the field in the current model
+  ref: 'Review', // name of the model to reference
+  foreignField: 'tour', // name of the field in the Review model
+  localField: '_id', // name of the field in the current model
+});
+
 // DOCUMENT MIDDLEWARE: runs before .save() and .create()
 tourSchema.pre('save', function (next) {
   this.slug = slugify(this.name, { lower: true });
