@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Tour = require('./tourModel');
 
 /*
 Review model consisting of: 
@@ -58,6 +59,51 @@ reviewSchema.pre(/^find/, function (next) {
   });
 
   next();
+});
+
+reviewSchema.statics.calcAverageRatings = async function (tourId) {
+  const stats = await this.aggregate([
+    {
+      $match: { tour: tourId }, // match all documents with tour equal to tourId
+    },
+    {
+      $group: {
+        _id: '$tour', // group all documents by tour
+        nRating: { $sum: 1 }, // calculate the sum of all documents
+        avgRating: { $avg: '$rating' }, // calculate the average of all ratings
+      },
+    },
+  ]);
+  console.log(stats);
+
+  if (stats.length > 0) {
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsQuantity: stats[0].nRating, // stats is an array with only one element
+      ratingsAverage: stats[0].avgRating, // stats is an array with only one element
+    });
+  } else {
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsQuantity: 0,
+      ratingsAverage: 4.5,
+    });
+  }
+};
+
+reviewSchema.post('save', function () {
+  // this points to the current review
+  this.constructor.calcAverageRatings(this.tour);
+});
+
+reviewSchema.pre(/^findOneAnd/, async function (next) {
+  // this points to the current query
+  this.r = await this.findOne(); // save the current review to the query
+  console.log(this.r);
+  next();
+});
+
+reviewSchema.post(/^findOneAnd/, async function () {
+  // this.findOne() does not work here because the query has already executed
+  await this.r.constructor.calcAverageRatings(this.r.tour);
 });
 
 const Review = mongoose.model('Review', reviewSchema);
