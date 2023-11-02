@@ -43,6 +43,9 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
+// each combination of tour and user must be unique
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+
 reviewSchema.pre(/^find/, function (next) {
   // get all the find queries
   // this.populate({
@@ -97,7 +100,7 @@ reviewSchema.post('save', function () {
 reviewSchema.pre(/^findOneAnd/, async function (next) {
   // this points to the current query
   this.r = await this.findOne(); // save the current review to the query
-  console.log(this.r);
+  //console.log(this.r);
   next();
 });
 
