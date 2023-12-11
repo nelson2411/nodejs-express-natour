@@ -128,3 +128,48 @@ exports.getToursWithin = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.getDistances = catchAsync(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  // convert the distance to radians
+  const multiplier = unit === 'mi' ? 0.000621371 : 0.001;
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longitude in the format lat,lng.',
+        400
+      )
+    );
+  }
+
+  const distances = await Tour.aggregate([
+    {
+      // calculate the distance from the given coordinates to the startLocation of each tour
+      $geoNear: {
+        near: {
+          type: 'Point',
+          coordinates: [lng * 1, lat * 1], // convert the coordinates to numbers
+        },
+        distanceField: 'distance', // name of the field that will be created to store the calculated distances
+        distanceMultiplier: multiplier, // convert the distance to miles or kilometers
+      },
+    },
+    {
+      // show only the name and distance of each tour
+      $project: {
+        distance: 1, // The 1 means true, 0 means false
+        name: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: distances,
+    },
+  });
+});
