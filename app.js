@@ -1,3 +1,4 @@
+const path = require('path'); // core module that deals with paths
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -14,7 +15,11 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
 
+app.set('view engine', 'pug'); // set the view engine to pug
+app.set('views', path.join(__dirname, 'views')); // set the views directory to the views folder
+
 // 1) global Middlewares
+app.use(express.static(path.join(__dirname, 'public'))); // serve static files
 
 app.use(helmet()); // set security HTTP headers
 
@@ -58,16 +63,11 @@ app.use(
   })
 ); // Prevent parameter pollution
 
-app.use(express.static(`${__dirname}/public`)); // this is a middleware that serves static files
-
 /* a middleware function requires a third parameter called
 next which is a function that tells the middleware to move
 */
-app.use((req, res, next) => {
-  console.log('Hello from the middleware 👋 👌');
-  next();
-});
 
+// Test middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   console.log(req.headers);
@@ -75,6 +75,12 @@ app.use((req, res, next) => {
 });
 
 // 3) Routes
+app.get('/', (req, res) => {
+  res.status(200).render('base', {
+    tour: 'The Forest Hiker',
+    user: 'Alba Melgar',
+  });
+});
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
