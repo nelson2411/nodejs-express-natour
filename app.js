@@ -79,6 +79,17 @@ app.get('/', (req, res) => {
   res.status(200).render('base', {
     tour: 'The Forest Hiker',
     user: 'Alba Melgar',
+    title: 'Exciting tours for adventurous people',
+  });
+});
+app.get('/overview', (req, res) => {
+  res.status(200).render('overview', {
+    title: 'All tours',
+  });
+});
+app.get('/tour', (req, res) => {
+  res.status(200).render('tour', {
+    title: 'The Forest Hiker',
   });
 });
 app.use('/api/v1/tours', tourRouter);
