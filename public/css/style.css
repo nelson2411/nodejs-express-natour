@@ -805,6 +805,11 @@ body {
   -ms-flex-pack: justify;
   justify-content: space-between;
 }
+
+.footer p {
+  display: flex;
+  justify-content: end;
+}
 @media only screen and (max-width: 50em) {
   .footer {
     grid-template-columns: 1fr;
@@ -830,6 +835,7 @@ body {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  justify-content: flex-end;
 }
 .footer__nav li {
   margin-left: 1.5rem;
